@@ -20,7 +20,7 @@ A simple web application that allows users to authenticate with Google SSO and c
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/OwinoLucas/meeting_scheduler.git
+git clone https://github.com/OwinoLucas/Meeting_Scheduler.git
 cd meeting-scheduler
 ```
 
