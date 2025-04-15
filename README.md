@@ -1,5 +1,93 @@
 # Meeting Scheduler
 
+## Authentication Troubleshooting
+
+If you encounter OAuthSignin errors with Google authentication, follow these steps:
+
+### 1. Verify Network Connectivity
+The ETIMEDOUT error indicates a connection timeout. Ensure your network can reach Google's authentication servers:
+- Check your internet connection
+- Verify there are no firewall rules or proxy settings blocking access to Google domains
+- Try accessing https://accounts.google.com in your browser
+
+### 2. Configure Google Cloud Console
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Select your project (or create one if needed)
+3. Navigate to "APIs & Services" > "Credentials"
+4. Edit your OAuth 2.0 Client ID or create a new one with these settings:
+   - Application type: Web application
+   - Name: Meeting Scheduler (or any descriptive name)
+   - Authorized JavaScript origins: `http://localhost:3000`
+   - Authorized redirect URIs: `http://localhost:3000/api/auth/callback/google`
+   - Click "Save"
+
+### 3. Configure OAuth Consent Screen
+1. Navigate to "APIs & Services" > "OAuth consent screen"
+2. Set up the consent screen if not already done
+3. Under "Scopes for Google APIs", add these scopes:
+   - `openid`
+   - `email`
+   - `profile`
+   - `https://www.googleapis.com/auth/calendar`
+   - `https://www.googleapis.com/auth/calendar.events`
+
+### 4. Enable Google Calendar API
+1. Navigate to "APIs & Services" > "Library"
+2. Search for "Google Calendar API"
+3. Click on it and ensure it's enabled for your project
+
+### 5. Verify Environment Variables
+Make sure your `.env.local` file contains:
+```
+# NextAuth Configuration
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=[your-secret-key]
+
+# Google OAuth Credentials
+GOOGLE_CLIENT_ID=[your-client-id]
+GOOGLE_CLIENT_SECRET=[your-client-secret]
+```
+
+### 6. Clear Browser Cookies 
+Clear your browser cookies for localhost to remove any stale authentication data.
+
+### 7. Restart Development Server
+```bash
+npm run dev
+```
+
+## 🔐 Testing Google SSO Login
+
+To test the Google Sign-In functionality with Calendar access, please use the following email:
+
+**✅ Approved Test Email:**  
+`lucowish35@gmail.com`
+
+This email has been added as a **Test User** in the Google OAuth Consent Screen configuration. Test Users are able to bypass the "unverified app" warning and can complete the sign-in process with elevated scopes such as:
+
+- `openid`
+- `email`
+- `profile`
+- `https://www.googleapis.com/auth/calendar`
+- `https://www.googleapis.com/auth/calendar.events`
+
+---
+
+### ⚠️ Why Your Personal Google Email Might Not Work
+
+If you try to log in using a Google account that is **not listed as a test user**, you may encounter the following warning:
+
+> **Google hasn’t verified this app**  
+> The app is requesting access to sensitive info in your Google Account.  
+> Until the developer verifies this app with Google, you shouldn't use it.
+
+This is expected behavior when an OAuth app is in **testing mode** and not yet verified by Google. Access to sensitive scopes is restricted to approved test accounts only.
+
+If you need your email added as a test user for evaluation, please contact the developer at: `lucasowino14@gmail.com`.
+
+
+# Meeting Scheduler
+
 A simple web application that allows users to authenticate with Google SSO and create/schedule Google Meet meetings.
 
 ## Features

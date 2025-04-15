@@ -38,6 +38,8 @@ export default function Home() {
   }, [instantMeeting, scheduledMeeting, error, isCreatingInstantMeeting, isCreatingScheduledMeeting]);
 
   useEffect(() => {
+    if (status === 'loading') return;
+  
     if (!session) {
       router.push('/auth/signin');
     } else {
@@ -46,7 +48,8 @@ export default function Home() {
         email: session.user.email
       }));
     }
-  }, [session, router, dispatch]);
+  }, [session, status, router, dispatch]);
+  
 
   const createInstantMeeting = async () => {
     if (isCreatingInstantMeeting) return;
@@ -72,7 +75,7 @@ export default function Home() {
 
       const data = await response.json();
       dispatch(setInstantMeeting({
-        link: data.meetLink,
+        link: data.meeting.meetLink,
         time: new Date().toLocaleString()
       }));
     } catch (err) {
@@ -119,7 +122,7 @@ export default function Home() {
 
       const data = await response.json();
       dispatch(setScheduledMeeting({
-        link: data.meetLink,
+        link: data.meeting.meetLink,
         time: new Date(data.startTime).toLocaleString()
       }));
     } catch (err) {
@@ -212,7 +215,7 @@ export default function Home() {
                   required
                   disabled={isCreatingScheduledMeeting}
                   min={new Date().toISOString().slice(0, 16)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
+                  className="mt-1 block w-full rounded-md border-gray-300 text-gray-500 shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
                 />
               </div>
               <button
