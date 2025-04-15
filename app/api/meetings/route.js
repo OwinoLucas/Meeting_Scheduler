@@ -4,6 +4,7 @@ import { google } from 'googleapis';
 import { NextResponse } from 'next/server';
 
 export async function POST(req) {
+  console.log('POST /api/meetings: Request received');
   try {
     console.log('Starting meeting creation process...');
     
@@ -11,23 +12,49 @@ export async function POST(req) {
     const session = await getServerSession(authOptions);
     console.log('Session:', session ? 'Found' : 'Not found');
     
-    if (!session?.accessToken) {
-      console.error('No session or access token found');
-      return NextResponse.json({ 
+    if (!session) {
+      console.error('No session found');
+      return createJsonResponse({ 
         error: 'Unauthorized',
         message: 'Please sign in to create meetings'
-      }, { status: 401 });
+      }, 401);
+    }
+    
+    if (!session.accessToken) {
+      console.error('No access token found in session');
+      return createJsonResponse({ 
+        error: 'Unauthorized',
+        message: 'Invalid session - missing access token. Please sign in again.'
+      }, 401);
+    }
+    
+    if (session.error === 'RefreshAccessTokenError') {
+      console.error('Token refresh error detected in session');
+      return createJsonResponse({ 
+        error: 'TokenRefreshError',
+        message: 'Your session has expired. Please sign in again.'
+      }, 401);
     }
 
     // Parse and validate request body
-    const body = await req.json();
-    console.log('Request body:', body);
-
+    let body;
+    try {
+      body = await req.json();
+      console.log('Request body received:', JSON.stringify(body));
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return createJsonResponse({ 
+        error: 'BadRequest',
+        message: 'Invalid JSON in request body'
+      }, 400);
+    }
+    
     if (!body.startTime) {
-      return NextResponse.json({ 
-        error: 'Bad Request',
+      console.error('Missing required field: startTime');
+      return createJsonResponse({ 
+        error: 'BadRequest',
         message: 'Start time is required'
-      }, { status: 400 });
+      }, 400);
     }
 
     // Setup Google OAuth2 client
@@ -86,60 +113,95 @@ export async function POST(req) {
       throw new Error('Failed to create meeting: No response data');
     }
 
-    console.log('Meeting created successfully');
-    return NextResponse.json({
+    console.log('Meeting created successfully with ID:', response.data.id);
+    
+    // Validate response data before sending
+    const meetingData = {
       success: true,
       meeting: {
-        id: response.data.id,
-        meetLink: response.data.hangoutLink,
-        startTime: response.data.start.dateTime,
-        endTime: response.data.end.dateTime,
-        title: response.data.summary,
-        description: response.data.description,
+        id: response.data.id || '',
+        meetLink: response.data.hangoutLink || '',
+        startTime: response.data.start?.dateTime || '',
+        endTime: response.data.end?.dateTime || '',
+        title: response.data.summary || 'Untitled Meeting',
+        description: response.data.description || '',
         attendees: response.data.attendees || []
       }
-    });
+    };
+    
+    return createJsonResponse(meetingData);
 
   } catch (error) {
     console.error('Error creating meeting:', error);
 
     // Handle authentication errors
+    // Handle authentication errors
     if (error.code === 401 || error.message?.includes('invalid_grant')) {
-      return NextResponse.json({ 
-        error: 'Authentication failed',
+      console.error('Authentication error when creating meeting:', error);
+      return createJsonResponse({ 
+        error: 'AuthenticationFailed',
         message: 'Your session has expired. Please sign in again.',
         details: error.message 
-      }, { status: 401 });
+      }, 401);
     }
 
     // Handle permission errors
     if (error.code === 403) {
-      return NextResponse.json({ 
-        error: 'Calendar access denied',
+      console.error('Permission error when creating meeting:', error);
+      return createJsonResponse({ 
+        error: 'AccessDenied',
         message: 'Please check your calendar permissions.',
         details: error.message 
-      }, { status: 403 });
+      }, 403);
+    }
+    
+    // Handle rate limit errors
+    if (error.code === 429 || error.message?.includes('rate limit')) {
+      console.error('Rate limit exceeded when creating meeting:', error);
+      return createJsonResponse({ 
+        error: 'RateLimitExceeded',
+        message: 'Too many requests. Please try again later.',
+        details: error.message 
+      }, 429);
     }
 
     // Handle all other errors
-    return NextResponse.json({ 
-      error: 'Failed to create meeting',
+    console.error('Unexpected error when creating meeting:', error);
+    return createJsonResponse({ 
+      error: 'FailedToCreateMeeting',
       message: 'An unexpected error occurred',
-      details: error.message 
-    }, { status: 500 });
-  }
+      details: error.message || 'Unknown error'
+    }, 500);
 }
 
 // GET method for fetching meetings
 export async function GET(req) {
+  console.log('GET /api/meetings: Request received');
   try {
     const session = await getServerSession(authOptions);
     
-    if (!session?.accessToken) {
-      return NextResponse.json({ 
+    if (!session) {
+      console.error('No session found');
+      return createJsonResponse({ 
         error: 'Unauthorized',
         message: 'Please sign in to view meetings'
-      }, { status: 401 });
+      }, 401);
+    }
+    
+    if (!session.accessToken) {
+      console.error('No access token found in session');
+      return createJsonResponse({ 
+        error: 'Unauthorized',
+        message: 'Invalid session - missing access token. Please sign in again.'
+      }, 401);
+    }
+    
+    if (session.error === 'RefreshAccessTokenError') {
+      console.error('Token refresh error detected in session');
+      return createJsonResponse({ 
+        error: 'TokenRefreshError',
+        message: 'Your session has expired. Please sign in again.'
+      }, 401);
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -157,6 +219,8 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const maxResults = parseInt(searchParams.get('limit') || '10', 10);
     const timeMin = searchParams.get('timeMin') || new Date().toISOString();
+    
+    console.log(`Fetching meetings: limit=${maxResults}, timeMin=${timeMin}`);
     
     const response = await calendar.events.list({
       calendarId: 'primary',
@@ -183,7 +247,8 @@ export async function GET(req) {
         }))
       }));
 
-    return NextResponse.json({
+    console.log(`Successfully fetched ${meetings.length} meetings`);
+    return createJsonResponse({
       success: true,
       meetings
     });
@@ -191,18 +256,62 @@ export async function GET(req) {
   } catch (error) {
     console.error('Error fetching meetings:', error);
     
-    if (error.code === 401) {
-      return NextResponse.json({ 
-        error: 'Authentication expired',
+    if (error.code === 401 || error.message?.includes('invalid_grant')) {
+      console.error('Authentication error when fetching meetings:', error);
+      return createJsonResponse({ 
+        error: 'AuthenticationExpired',
         message: 'Your session has expired. Please sign in again.',
         details: error.message 
-      }, { status: 401 });
+      }, 401);
     }
     
-    return NextResponse.json({ 
-      error: 'Failed to fetch meetings',
+    if (error.code === 403) {
+      console.error('Permission error when fetching meetings:', error);
+      return createJsonResponse({ 
+        error: 'AccessDenied',
+        message: 'Please check your calendar permissions.',
+        details: error.message 
+      }, 403);
+    }
+    
+    if (error.code === 429) {
+      console.error('Rate limit exceeded when fetching meetings:', error);
+      return createJsonResponse({ 
+        error: 'RateLimitExceeded',
+        message: 'Too many requests. Please try again later.',
+        details: error.message 
+      }, 429);
+    }
+    
+    console.error('Unexpected error when fetching meetings:', error);
+    return createJsonResponse({ 
+      error: 'FailedToFetchMeetings',
       message: 'An unexpected error occurred',
-      details: error.message 
-    }, { status: 500 });
+      details: error.message || 'Unknown error'
+    }, 500);
   }
+}
+
+// CORS preflight handler
+export async function OPTIONS(req) {
+  return createJsonResponse({}, 200);
+}
+
+/**
+ * Helper function to create a consistent JSON response with proper headers
+ * @param {Object} data - The data to return in the response
+ * @param {number} status - HTTP status code (default: 200)
+ * @returns {NextResponse} - Next.js response object with proper headers
+ */
+function createJsonResponse(data, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'no-store, must-revalidate, max-age=0',
+    }
+  });
 }

@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Ensure specific images and other assets are optimized
+  // Configure image optimization settings
   images: {
     domains: ['lh3.googleusercontent.com'], // For Google profile images
     formats: ['image/avif', 'image/webp'],
@@ -10,13 +10,11 @@ const nextConfig = {
         hostname: 'lh3.googleusercontent.com',
       },
     ],
-    // Don't use remote loader on Netlify - rely on their image optimization
-    unoptimized: process.env.NETLIFY === 'true',
   },
   
   // Ensure environment variables are properly handled
   env: {
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_BASE_URL,
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || process.env.VERCEL_URL,
   },
   
   // Handle trailing slashes consistently
@@ -34,13 +32,13 @@ const nextConfig = {
     serverComponentsExternalPackages: ['next-auth'],
     // Support server actions
     serverActions: {
-      allowedOrigins: ['localhost:3000', 'meeting-scheduler1.netlify.app'],
+      allowedOrigins: ['localhost:3000'],
     },
     // Ensure proper SSR handling
     esmExternals: 'loose',
   },
   
-  // Optimize for Netlify deployment with SSR support
+  // Disable the 'X-Powered-By' header for security
   poweredByHeader: false,
   
   // Configure proper headers for authentication and caching
@@ -80,12 +78,12 @@ const nextConfig = {
     ];
   },
 
-  // Enable proper runtime support
+  // TypeScript configuration
   typescript: {
-    ignoreBuildErrors: process.env.NETLIFY === 'true',
+    ignoreBuildErrors: false,
   },
 
-  // Configure proper Netlify deployment
+  // Webpack configuration
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Client-side only config
@@ -104,7 +102,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  // Properly handle Next.js + Netlify integration
+  // Standard Next.js build directory
   distDir: '.next',
 };
 

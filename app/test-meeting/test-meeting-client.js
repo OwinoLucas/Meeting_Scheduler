@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
 import Link from 'next/link';
 
 export default function TestMeetingClient() {
@@ -15,6 +15,16 @@ export default function TestMeetingClient() {
       setLoading(true);
       setError(null);
       setResult(null);
+
+      // Check if session is valid
+      if (!session) {
+        throw new Error('Authentication required. Please sign in to create meetings.');
+      }
+
+      // Check for token expiration
+      if (session.error === 'RefreshAccessTokenError') {
+        throw new Error('Your session has expired. Please sign in again.');
+      }
 
       // Create a meeting 5 minutes from now
       const startTime = new Date(Date.now() + 5 * 60000).toISOString();
@@ -31,17 +41,56 @@ export default function TestMeetingClient() {
           duration: 30, // 30 minutes
         }),
       });
+      
+      // Check content type to ensure it's JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        // If the server returns HTML instead of JSON, this avoids the parsing error
+        const text = await response.text();
+        console.error('Received non-JSON response:', text.substring(0, 200) + '...');
+        throw new Error(
+          'Server returned an invalid response format. This may indicate a server error or authentication issue.'
+        );
+      }
 
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || data.error || 'Failed to create meeting');
+        // Handle specific error cases
+        if (response.status === 401) {
+          // Unauthorized - session might be expired
+          if (data.message?.includes('expired')) {
+            throw new Error('Your session has expired. Please sign in again.');
+          } else {
+            throw new Error('Authentication failed. Please sign in again.');
+          }
+        } else if (response.status === 403) {
+          throw new Error('Calendar access denied. Please check your Google Calendar permissions.');
+        } else if (response.status === 429) {
+          throw new Error('Too many requests. Please try again later.');
+        } else {
+          throw new Error(data.message || data.error || 'Failed to create meeting');
+        }
       }
 
       setResult(data);
     } catch (err) {
       console.error('Error creating meeting:', err);
-      setError(err.message);
+      
+      // Handle auth-related errors by redirecting to sign in
+      if (
+        err.message?.includes('authentication') || 
+        err.message?.includes('sign in') || 
+        err.message?.includes('session has expired')
+      ) {
+        setError(`${err.message} Redirecting to sign in page...`);
+        // Set a timeout to allow the user to see the error before redirecting
+        setTimeout(() => {
+          signIn('google', { callbackUrl: window.location.href });
+        }, 2000);
+      } else {
+        setError(err.message || 'An unexpected error occurred');
+      }
     } finally {
       setLoading(false);
     }
