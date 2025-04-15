@@ -1,21 +1,19 @@
+// Simple middleware configuration to protect API routes
 import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
 
-export default withAuth(
-  function middleware(req) {
-    // Add custom middleware logic here if needed
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
-    pages: {
-      signIn: "/auth/signin",
-    },
+// Use withAuth without a custom function to simplify
+export default withAuth({
+  pages: {
+    signIn: "/auth/signin",
   }
-);
+});
 
+// Specify exactly which paths to protect with middleware
 export const config = {
-  matcher: ["/api/meetings"],
+  matcher: [
+    // Protected API routes
+    "/api/meetings",
+    // Skip auth routes
+    "/((?!api/auth|auth/signin|_next/static|_next/image|favicon.ico).*)",
+  ],
 };

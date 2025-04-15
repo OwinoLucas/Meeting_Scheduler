@@ -42,10 +42,11 @@ export default function HomeClient() {
   
     if (!session) {
       router.push('/auth/signin');
-    } else {
+    } else if (session.user) {
+      // Only dispatch if session.user exists
       dispatch(setUser({
-        name: session.user.name,
-        email: session.user.email
+        name: session.user.name || 'Unknown User',
+        email: session.user.email || 'No Email'
       }));
     }
   }, [session, status, router, dispatch]);
@@ -154,6 +155,15 @@ export default function HomeClient() {
     );
   }
 
+  // Make sure session and session.user exist before rendering
+  if (!session || !session.user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-4xl mx-auto">
@@ -161,8 +171,8 @@ export default function HomeClient() {
           <h1 className="text-2xl font-bold text-gray-900">Meeting Scheduler</h1>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-gray-900 font-medium">{session.user.name}</p>
-              <p className="text-sm text-gray-600">{session.user.email}</p>
+              <p className="text-gray-900 font-medium">{session.user.name || 'Unknown User'}</p>
+              <p className="text-sm text-gray-600">{session.user.email || 'No Email'}</p>
             </div>
             <button
               onClick={() => signOut()}

@@ -3,6 +3,24 @@ import { authOptions } from '../auth/[...nextauth]/route';
 import { google } from 'googleapis';
 import { NextResponse } from 'next/server';
 
+/**
+ * Helper function to create a consistent JSON response with proper headers
+ * @param {Object} data - The data to return in the response
+ * @param {number} status - HTTP status code (default: 200)
+ * @returns {NextResponse} - Next.js response object with proper headers
+ */
+function createJsonResponse(data, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Cache-Control': 'no-store, must-revalidate, max-age=0',
+    }
+  });
+}
 export async function POST(req) {
   console.log('POST /api/meetings: Request received');
   try {
@@ -172,6 +190,7 @@ export async function POST(req) {
       message: 'An unexpected error occurred',
       details: error.message || 'Unknown error'
     }, 500);
+  }
 }
 
 // GET method for fetching meetings
@@ -295,23 +314,4 @@ export async function GET(req) {
 // CORS preflight handler
 export async function OPTIONS(req) {
   return createJsonResponse({}, 200);
-}
-
-/**
- * Helper function to create a consistent JSON response with proper headers
- * @param {Object} data - The data to return in the response
- * @param {number} status - HTTP status code (default: 200)
- * @returns {NextResponse} - Next.js response object with proper headers
- */
-function createJsonResponse(data, status = 200) {
-  return NextResponse.json(data, {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Cache-Control': 'no-store, must-revalidate, max-age=0',
-    }
-  });
 }
