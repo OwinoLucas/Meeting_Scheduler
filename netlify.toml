@@ -12,15 +12,9 @@
   # Force server-side rendering mode
   NEXT_FORCE_SERVER_SIDE_RENDERING = "true"
 
+# Use the Next.js plugin without invalid inputs
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-  [plugins.inputs]
-    # Enable ISR for dynamic pages
-    enable_isr = true
-    # Disable static page generation since we're using SSR
-    static_page_generation = false
-    # Disable prerendering to fix build issues
-    prerender_concurrency = 0
 
 [functions]
   directory = "netlify/functions"
