@@ -59,11 +59,11 @@ yarn dev
 
 ## Deployment
 
-The application can be deployed to Netlify:
+The application can be deployed to Vercel:
 
 1. Push your code to a Git repository
-2. Connect your repository to Netlify
-3. Set up the environment variables in Netlify's dashboard
+2. Connect your repository to Vercel
+3. Set up the environment variables in Vercel's dashboard
 4. Deploy!
 
 ## Authentication Troubleshooting
@@ -122,34 +122,30 @@ Clear your browser cookies for localhost to remove any stale authentication data
 npm run dev
 ```
 
-## 🔐 Testing Google SSO Login
+### ⚠️ Google OAuth Verification Notice
 
-To test the Google Sign-In functionality with Calendar access, please use the following email:
+When signing in with Google, you might see the following warning:
 
-**✅ Approved Test Email:**  
-`lucowish35@gmail.com`
+> **"Google hasn’t verified this app"**  
+> The app is requesting access to sensitive info in your Google Account.  
+> Until the developer (**lucasowino14@gmail.com**) verifies this app with Google, you shouldn't use it.
 
-This email has been added as a **Test User** in the Google OAuth Consent Screen configuration. Test Users are able to bypass the "unverified app" warning and can complete the sign-in process with elevated scopes such as:
-
-- `openid`
-- `email`
-- `profile`
-- `https://www.googleapis.com/auth/calendar`
-- `https://www.googleapis.com/auth/calendar.events`
+This is because the app is currently in **testing mode** and pending **Google verification**.
 
 ---
 
-### ⚠️ Why Your Personal Google Email Might Not Work
+#### 🔐 What You Can Do
 
-If you try to log in using a Google account that is **not listed as a test user**, you may encounter the following warning:
+If you trust the app and wish to proceed:
 
-> **Google hasn’t verified this app**  
-> The app is requesting access to sensitive info in your Google Account.  
-> Until the developer verifies this app with Google, you shouldn't use it.
+1. Click **"Advanced"**.
+2. Click **"Go to meeting-scheduler-beta.vercel.app (unsafe)"**.
+3. You can now sign in and test the full functionality.
 
-This is expected behavior when an OAuth app is in **testing mode** and not yet verified by Google. Access to sensitive scopes is restricted to approved test accounts only.
+---
 
-If you need your email added as a test user for evaluation, please contact the developer at: `lucasowino14@gmail.com`.
+> ⚠️ **Important:**  
+> This warning will disappear once the app is verified by Google for public use. Until then, only trusted testers should proceed.
 
 
 ## Notes
