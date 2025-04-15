@@ -3,16 +3,7 @@
 import { Provider } from 'react-redux';
 import { store } from './lib/store';
 import { useState, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-
-// Dynamically import SessionProvider to avoid it running during static generation
-const AuthProvider = dynamic(
-  () => import('./auth-provider').then(mod => mod.AuthProvider),
-  { 
-    ssr: false, // Critical: Don't render on server
-    loading: () => <div style={{ visibility: 'hidden' }}>{null}</div> 
-  }
-);
+import { SessionProvider } from 'next-auth/react';
 
 // This ensures the providers only run on the client side
 export default function Providers({ children }) {
@@ -30,18 +21,21 @@ export default function Providers({ children }) {
     });
   }, []);
 
-  // During static generation, this component won't run hooks
-  // When in the browser, we'll render the providers
+  // Show a loading state when not mounted
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  // Critical: Auth provider must wrap the Redux provider to ensure contexts are properly available
   return (
-    <Provider store={store}>
-      {mounted ? (
-        <AuthProvider>
-          {children}
-        </AuthProvider>
-      ) : (
-        // Provide a hidden fallback while loading
-        <div style={{ visibility: 'hidden' }}>{children}</div>
-      )}
-    </Provider>
+    <SessionProvider>
+      <Provider store={store}>
+        {children}
+      </Provider>
+    </SessionProvider>
   );
 }
