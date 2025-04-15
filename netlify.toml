@@ -1,17 +1,49 @@
 [build]
   command = "npm run build"
   publish = ".next"
+  # Increase timeout for larger builds
+  functions_timeout = 30
 
 [build.environment]
   NEXT_PUBLIC_BASE_URL = "https://meeting-scheduler1.netlify.app"
+  # Tell Next.js that we're building for Netlify
+  NETLIFY = "true"
+  NEXT_TELEMETRY_DISABLED = "1"
+  # Force server-side rendering mode
+  NEXT_FORCE_SERVER_SIDE_RENDERING = "true"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+  [plugins.inputs]
+    # Enable ISR for dynamic pages
+    enable_isr = true
+    # Disable static page generation since we're using SSR
+    static_page_generation = false
+    # Disable prerendering to fix build issues
+    prerender_concurrency = 0
 
 [functions]
   directory = "netlify/functions"
+  # Increase the function timeout for API routes
+  node_bundler = "esbuild"
+  included_files = ["**/*.json", "**/*.js", "**/*.ts", "**/*.tsx"]
+  
+# For handling Next.js image optimization
+[[redirects]]
+  from = "/_next/image*"
+  to = "/.netlify/builders/image"
+  status = 200
+
+# Force dynamic routes to be handled by Netlify functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/nextjs-server"
+  status = 200
+
+[[redirects]]
+  from = "/auth/*"
+  to = "/.netlify/functions/nextjs-server"
+  status = 200
 
 [dev]
   command = "npm run dev"
-
-

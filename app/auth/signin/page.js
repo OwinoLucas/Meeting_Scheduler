@@ -1,5 +1,14 @@
 import SignInContent from './SignInContent';
 
+// Metadata for SEO
+export const metadata = {
+  title: 'Sign In - Meeting Scheduler',
+  description: 'Sign in to Meeting Scheduler to create and manage Google Meet meetings with ease.',
+};
+
+// Force dynamic rendering - prevents static generation attempts
+export const dynamic = 'force-dynamic';
+
 export default function SignInPage() {
   // This is now a server component that renders the client component
   // The static shell allows for proper pre-rendering
