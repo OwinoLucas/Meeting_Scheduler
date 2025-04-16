@@ -4,6 +4,36 @@ import { useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
 import Link from 'next/link';
 
+// Helper function to format dates consistently
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'Invalid date';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'Invalid date';
+    
+    // Format date with time and timezone information
+    return new Intl.DateTimeFormat('default', {
+      dateStyle: 'full',
+      timeStyle: 'long',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }).format(date);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date format';
+  }
+};
+
+// Helper to get user-friendly timezone name
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    return 'Unknown timezone';
+  }
+};
 export default function TestMeetingClient() {
   const { data: session, status } = useSession();
   const [result, setResult] = useState(null);
@@ -27,7 +57,11 @@ export default function TestMeetingClient() {
       }
 
       // Create a meeting 5 minutes from now
-      const startTime = new Date(Date.now() + 5 * 60000).toISOString();
+      // Create a meeting 5 minutes from now, ensuring valid ISO format
+      const meetingDate = new Date(Date.now() + 5 * 60000);
+      const startTime = meetingDate.toISOString();
+      
+      console.log(`Scheduling meeting at: ${formatDateTime(startTime)}`);
       
       const response = await fetch('/api/meetings', {
         method: 'POST',
@@ -54,6 +88,20 @@ export default function TestMeetingClient() {
       }
 
       const data = await response.json();
+      
+      // Validate meeting data
+      if (data.meeting) {
+        // Validate date formats
+        const startTime = new Date(data.meeting.startTime);
+        const endTime = new Date(data.meeting.endTime);
+        
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          console.warn('Received invalid date format from API:', {
+            startTime: data.meeting.startTime,
+            endTime: data.meeting.endTime
+          });
+        }
+      }
       
       if (!response.ok) {
         // Handle specific error cases
@@ -158,6 +206,7 @@ export default function TestMeetingClient() {
       {result && (
         <div className="p-6 bg-green-50 text-green-700 rounded-lg border border-green-200">
           <h2 className="font-bold text-xl mb-4">Meeting Created Successfully!</h2>
+          <p className="text-sm text-gray-600 mb-4">All times shown in your local timezone ({getUserTimezone()})</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -173,10 +222,13 @@ export default function TestMeetingClient() {
             
             <div>
               <p className="font-medium">Start Time:</p>
-              <p className="mb-2">{new Date(result.meeting.startTime).toLocaleString()}</p>
+              <p className="mb-2">{formatDateTime(result.meeting.startTime)}</p>
+              <p className="text-xs text-gray-500 mb-2">
+                Timezone: {getUserTimezone()}
+              </p>
               
               <p className="font-medium">End Time:</p>
-              <p className="mb-2">{new Date(result.meeting.endTime).toLocaleString()}</p>
+              <p className="mb-2">{formatDateTime(result.meeting.endTime)}</p>
               
               <p className="font-medium">Google Meet Link:</p>
               <a 

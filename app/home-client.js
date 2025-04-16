@@ -13,6 +13,36 @@ import {
 } from './lib/store/slices/meetingsSlice';
 import { setUser } from './lib/store/slices/authSlice';
 
+// Helper function to format dates consistently
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'Invalid date';
+  
+  try {
+    const date = new Date(dateString);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'Invalid date';
+    
+    // Format date with time and timezone information
+    return new Intl.DateTimeFormat('default', {
+      dateStyle: 'full',
+      timeStyle: 'long',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    }).format(date);
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date format';
+  }
+};
+
+// Helper to get user-friendly timezone name
+const getUserTimezone = () => {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch (error) {
+    return 'Unknown timezone';
+  }
+};
 export default function HomeClient() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -25,6 +55,8 @@ export default function HomeClient() {
     isCreatingInstantMeeting,
     isCreatingScheduledMeeting,
   } = useAppSelector((state) => state.meetings);
+
+  console.log("time:", scheduledMeeting.time)
 
   useEffect(() => {
     // Test Redux is working
@@ -75,9 +107,24 @@ export default function HomeClient() {
       }
 
       const data = await response.json();
+      
+      // Validate meeting data
+      if (data.meeting) {
+        // Validate date formats
+        const startTime = new Date(data.meeting.startTime);
+        const endTime = new Date(data.meeting.endTime);
+        
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          console.warn('Received invalid date format from API:', {
+            startTime: data.meeting.startTime,
+            endTime: data.meeting.endTime
+          });
+        }
+      }
+      
       dispatch(setInstantMeeting({
         link: data.meeting.meetLink,
-        time: new Date().toLocaleString()
+        time: formatDateTime(new Date()) // Use current time formatted consistently
       }));
     } catch (err) {
       dispatch(setError(err.message || 'Failed to create meeting. Please try again.'));
@@ -122,9 +169,24 @@ export default function HomeClient() {
       }
 
       const data = await response.json();
+      
+      // Validate meeting data
+      if (data.meeting) {
+        // Validate date formats
+        const startTime = new Date(data.meeting.startTime);
+        const endTime = new Date(data.meeting.endTime);
+        
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+          console.warn('Received invalid date format from API:', {
+            startTime: data.meeting.startTime,
+            endTime: data.meeting.endTime
+          });
+        }
+      }
+      
       dispatch(setScheduledMeeting({
         link: data.meeting.meetLink,
-        time: new Date(data.startTime).toLocaleString()
+        time: formatDateTime(data.meeting.startTime) // Use meeting's start time with proper formatting
       }));
     } catch (err) {
       dispatch(setError(err.message || 'Failed to schedule meeting. Please try again.'));
@@ -247,6 +309,7 @@ export default function HomeClient() {
         {(instantMeeting.link || scheduledMeeting.link) && (
           <div className="mt-8 bg-white p-6 rounded-lg shadow">
             <h2 className="text-2xl font-semibold mb-6 text-gray-900">Meeting Details</h2>
+            <p className="text-sm text-gray-600 mb-4">All times shown in your local timezone ({getUserTimezone()})</p>
             
             {instantMeeting.link && (
               <div className="mb-6 p-4 bg-gray-50 rounded">
@@ -262,7 +325,6 @@ export default function HomeClient() {
                 </a>
               </div>
             )}
-
             {scheduledMeeting.link && (
               <div className="p-4 bg-gray-50 rounded">
                 <h3 className="text-lg font-medium text-gray-900 mb-2">Scheduled Meeting</h3>
